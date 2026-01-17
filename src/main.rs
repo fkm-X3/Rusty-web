@@ -101,10 +101,99 @@ fn main() {
     let mut drag_start_scroll: i32 = 0;
     let mut in_settings = false;
     let mut settings_scroll_offset: i32 = 0;
-    let mut homepage_url = "index.html".to_string();
     
     // Get the current working directory as base path for resolving relative image paths
     let base_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    
+    let settings_html = r#"<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #121214;
+            color: #e1e1e6;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .setting-group {
+            background-color: #202024;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #00b37e;
+        }
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #c4c4cc;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background-color: #29292e;
+            border: 1px solid #323238;
+            border-radius: 4px;
+            color: #e1e1e6;
+            font-size: 14px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00b37e;
+        }
+        .button {
+            background-color: #00b37e;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background-color: #04d361;
+        }
+        h1 {
+            color: #00b37e;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .back-link {
+            color: #00b37e;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Browser Settings</h1>
+    <div class="setting-group">
+        <div class="setting-item">
+            <label for="homepage">Homepage URL:</label>
+            <input type="text" id="homepage" value="index.html" placeholder="Enter homepage URL">
+        </div>
+        <div class="setting-item">
+            <label for="useragent">User Agent:</label>
+            <input type="text" id="useragent" value="Rusty Browser/1.0" placeholder="Enter user agent string">
+        </div>
+    </div>
+    <div class="setting-group">
+        <button class="button" onclick="saveSettings()">Save Settings</button>
+        <button class="button" onclick="resetSettings()">Reset to Defaults</button>
+    </div>
+</body>
+</html>"#.to_string();
     
     let mut html_content = std::fs::read_to_string(&url)
         .map(|html| resolve_image_paths(&html, &base_dir))
@@ -157,9 +246,16 @@ fn main() {
                     winit::event::MouseScrollDelta::PixelDelta(pos) => pos.y as i32,
                 };
                 
-                scroll_offset -= scroll_amount;
-                let max_scroll = (content_height - (window_handle.inner_size().height as i32 - (BASE_UI_HEIGHT * current_scale_factor as f32) as i32)).max(0);
-                scroll_offset = scroll_offset.clamp(0, max_scroll);
+                if in_settings {
+                    settings_scroll_offset -= scroll_amount;
+                    let max_scroll = (content_height - (window_handle.inner_size().height as i32 - (BASE_UI_HEIGHT * current_scale_factor as f32) as i32)).max(0);
+                    settings_scroll_offset = settings_scroll_offset.clamp(0, max_scroll);
+                    scroll_offset = settings_scroll_offset;
+                } else {
+                    scroll_offset -= scroll_amount;
+                    let max_scroll = (content_height - (window_handle.inner_size().height as i32 - (BASE_UI_HEIGHT * current_scale_factor as f32) as i32)).max(0);
+                    scroll_offset = scroll_offset.clamp(0, max_scroll);
+                }
             },
             Event::WindowEvent { event: WindowEvent::MouseInput { state, button, .. }, .. } => {
                 if state == ElementState::Pressed && button == MouseButton::Left {
@@ -174,7 +270,7 @@ fn main() {
                         let btn_spacing = 10.0 * scale_factor;
 
                         // Back Button
-                        if cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
+                        if !in_settings && cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
                             if let Some(prev_url) = history.pop() {
                                 forward_stack.push(url.clone());
                                 url = prev_url;
@@ -186,7 +282,7 @@ fn main() {
                         x += btn_size + btn_spacing;
 
                         // Forward Button
-                        if cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
+                        if !in_settings && cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
                             if let Some(next_url) = forward_stack.pop() {
                                 history.push(url.clone());
                                 url = next_url;
@@ -198,17 +294,33 @@ fn main() {
                         x += btn_size + btn_spacing;
 
                         // Reload Button
-                        if cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
+                        if !in_settings && cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
                             html_content = std::fs::read_to_string(&url)
                                 .map(|html| resolve_image_paths(&html, &base_dir))
                                 .unwrap_or_else(|_| format!("<html><body><h1>Error</h1><p>Reload failed for {}</p></body></html>", url));
+                        }
+                        x += btn_size + btn_spacing;
+
+                        // Settings Button
+                        if cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
+                            in_settings = !in_settings;
+                            if in_settings {
+                                html_content = settings_html.clone();
+                                scroll_offset = settings_scroll_offset;
+                            } else {
+                                settings_scroll_offset = scroll_offset;
+                                html_content = std::fs::read_to_string(&url)
+                                    .map(|html| resolve_image_paths(&html, &base_dir))
+                                    .unwrap_or_else(|_| format!("<html><body><h1>Error</h1><p>Could not load {}</p></body></html>", url));
+                                scroll_offset = 0;
+                            }
                         }
                         
                         // Address Bar Focus Detection
                         x += btn_size + btn_spacing;
                         let size = window_handle.inner_size();
                         let addr_w = size.width as f32 - x - 20.0 * scale_factor;
-                        if cursor_pos.0 >= x && cursor_pos.0 <= x + addr_w && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
+                        if !in_settings && cursor_pos.0 >= x && cursor_pos.0 <= x + addr_w && cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
                             address_bar_focused = true;
                             input_buffer = url.clone();
                         } else {
@@ -310,15 +422,29 @@ fn main() {
                     };
                     
                     if scroll_amount != 0 {
-                        if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::Home) {
-                            scroll_offset = 0;
-                        } else if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::End) {
-                            let max_scroll = (content_height - viewport_height as i32).max(0);
-                            scroll_offset = max_scroll;
+                        if in_settings {
+                            if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::Home) {
+                                settings_scroll_offset = 0;
+                            } else if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::End) {
+                                let max_scroll = (content_height - viewport_height as i32).max(0);
+                                settings_scroll_offset = max_scroll;
+                            } else {
+                                settings_scroll_offset += scroll_amount;
+                                let max_scroll = (content_height - viewport_height as i32).max(0);
+                                settings_scroll_offset = settings_scroll_offset.clamp(0, max_scroll);
+                            }
+                            scroll_offset = settings_scroll_offset;
                         } else {
-                            scroll_offset += scroll_amount;
-                            let max_scroll = (content_height - viewport_height as i32).max(0);
-                            scroll_offset = scroll_offset.clamp(0, max_scroll);
+                            if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::Home) {
+                                scroll_offset = 0;
+                            } else if event.logical_key == winit::keyboard::Key::Named(winit::keyboard::NamedKey::End) {
+                                let max_scroll = (content_height - viewport_height as i32).max(0);
+                                scroll_offset = max_scroll;
+                            } else {
+                                scroll_offset += scroll_amount;
+                                let max_scroll = (content_height - viewport_height as i32).max(0);
+                                scroll_offset = scroll_offset.clamp(0, max_scroll);
+                            }
                         }
                     }
                 }
@@ -385,8 +511,8 @@ fn main() {
                 let font_size = 20.0 * scale_factor;
                 let corner_radius = 8.0 * scale_factor;
 
-                let labels = [("←", 10.0), ("→", 10.0), ("↻", 8.0)];
-                for (label, x_off) in labels {
+                let labels = [("←", 10.0), ("→", 10.0), ("↻", 8.0), ("⚙", 8.0)];
+                for (i, (label, x_off)) in labels.iter().enumerate() {
                     let _rect = Rect::from_xywh(x, btn_y, btn_size, btn_size).unwrap();
                     let path = {
                         let mut pb = PathBuilder::new();
@@ -402,10 +528,15 @@ fn main() {
                         pb.finish().unwrap()
                     };
                     
-                    // Hover effect
-                    if cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size &&
+                    // Button state: disabled for navigation buttons when in settings
+                    let is_disabled = in_settings && i < 3;
+                    
+                    // Hover effect (only if not disabled)
+                    if !is_disabled && cursor_pos.0 >= x && cursor_pos.0 <= x + btn_size &&
                        cursor_pos.1 >= btn_y && cursor_pos.1 <= btn_y + btn_size {
                         paint.set_color_rgba8(70, 70, 80, 255);
+                    } else if is_disabled {
+                        paint.set_color_rgba8(35, 35, 40, 255); // Darker color for disabled
                     } else {
                         paint.set_color_rgba8(55, 55, 65, 255);
                     }
@@ -413,11 +544,16 @@ fn main() {
                     pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
                     
                     // Subtle Border
-                    paint.set_color_rgba8(80, 80, 90, 255);
+                    if is_disabled {
+                        paint.set_color_rgba8(50, 50, 55, 255);
+                    } else {
+                        paint.set_color_rgba8(80, 80, 90, 255);
+                    }
                     pixmap.stroke_path(&path, &paint, &Stroke::default(), Transform::identity(), None);
 
-                    // Label
-                    draw_text(&mut pixmap, &font, label, x + x_off * scale_factor, btn_y + 26.0 * scale_factor, font_size, Color::WHITE);
+                    // Label (dimmed if disabled)
+                    let text_color = if is_disabled { Color::from_rgba8(100, 100, 110, 255) } else { Color::WHITE };
+                    draw_text(&mut pixmap, &font, label, x + x_off * scale_factor, btn_y + 26.0 * scale_factor, font_size, text_color);
 
                     x += btn_size + btn_spacing;
                 }
@@ -450,7 +586,13 @@ fn main() {
                 }
                 pixmap.stroke_path(&addr_path, &paint, &Stroke::default(), Transform::identity(), None);
 
-                let display_url = if address_bar_focused { &input_buffer } else { &url };
+                let display_url = if address_bar_focused { 
+                    &input_buffer 
+                } else if in_settings { 
+                    "Settings" 
+                } else { 
+                    &url 
+                };
                 draw_text(&mut pixmap, &font, display_url, addr_x + 15.0 * scale_factor, btn_y + 26.0 * scale_factor, 16.0 * scale_factor, Color::from_rgba8(180, 180, 190, 255));
                 
                 // Cursor for focus
