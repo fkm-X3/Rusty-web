@@ -999,6 +999,7 @@ struct LayoutState {
   int height;
   uint32_t *buffer;
   double scale_factor;
+  int scroll_offset;
 };
 
 void layout_node(std::shared_ptr<Node> node, int container_w, int line_start_x,
@@ -1308,8 +1309,8 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
             // Simple alpha blending with white background
             if (a == 255) {
               draw_pixel(state.buffer, state.width, state.height,
-                         node->margin_box.x + dx, node->margin_box.y + dy,
-                         pixel);
+                         node->margin_box.x + dx,
+                         node->margin_box.y + dy - state.scroll_offset, pixel);
             } else if (a > 0) {
               uint8_t r = (pixel >> 16) & 0xFF;
               uint8_t g = (pixel >> 8) & 0xFF;
@@ -1322,7 +1323,8 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
 
               uint32_t blended = 0xFF000000 | (r << 16) | (g << 8) | b;
               draw_pixel(state.buffer, state.width, state.height,
-                         node->margin_box.x + dx, node->margin_box.y + dy,
+                         node->margin_box.x + dx,
+                         node->margin_box.y + dy - state.scroll_offset,
                          blended);
             }
           }
@@ -1334,28 +1336,29 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
 
     if (s.has_bg) {
       draw_rect(state.buffer, state.width, state.height, node->padding_box.x,
-                node->padding_box.y, node->padding_box.w, node->padding_box.h,
-                s.bg_color);
+                node->padding_box.y - state.scroll_offset, node->padding_box.w,
+                node->padding_box.h, s.bg_color);
       current_bg_color = s.bg_color;
     }
 
     if (s.border_top > 0)
       draw_rect(state.buffer, state.width, state.height, node->border_box.x,
-                node->border_box.y, node->border_box.w, s.border_top,
-                s.border_color);
+                node->border_box.y - state.scroll_offset, node->border_box.w,
+                s.border_top, s.border_color);
     if (s.border_bottom > 0)
       draw_rect(state.buffer, state.width, state.height, node->border_box.x,
-                node->border_box.y + node->border_box.h - s.border_bottom,
+                node->border_box.y + node->border_box.h - s.border_bottom -
+                    state.scroll_offset,
                 node->border_box.w, s.border_bottom, s.border_color);
     if (s.border_left > 0)
       draw_rect(state.buffer, state.width, state.height, node->border_box.x,
-                node->border_box.y, s.border_left, node->border_box.h,
-                s.border_color);
+                node->border_box.y - state.scroll_offset, s.border_left,
+                node->border_box.h, s.border_color);
     if (s.border_right > 0)
       draw_rect(state.buffer, state.width, state.height,
                 node->border_box.x + node->border_box.w - s.border_right,
-                node->border_box.y, s.border_right, node->border_box.h,
-                s.border_color);
+                node->border_box.y - state.scroll_offset, s.border_right,
+                node->border_box.h, s.border_color);
   } else {
     double font_scale =
         (double)node->computed_style.font_size / (16.0 * state.scale_factor);
@@ -1376,8 +1379,9 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
       }
 
       for (char c : line_text) {
-        draw_char(state.buffer, state.width, state.height, cur_x, line.y, c,
-                  text_color, state.scale_factor, font_scale,
+        draw_char(state.buffer, state.width, state.height, cur_x,
+                  line.y - state.scroll_offset, c, text_color,
+                  state.scale_factor, font_scale,
                   node->computed_style.font_bold,
                   node->computed_style.font_italic);
         cur_x += char_w;
@@ -1391,6 +1395,7 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
 }
 
 static std::shared_ptr<Node> global_root = nullptr;
+static int global_content_height = 0;
 
 static std::shared_ptr<Node> find_node_at(std::shared_ptr<Node> node, int x,
                                           int y) {
@@ -1433,7 +1438,7 @@ bool hit_test(int x, int y, char *out_href, int max_len) {
   return false;
 }
 void render_frame(const char *html_cstr, uint32_t *buffer, int width,
-                  int height, double scale_factor) {
+                  int height, double scale_factor, int scroll_offset) {
   // Clear background
   for (int i = 0; i < width * height; ++i) {
     buffer[i] = 0xFFFFFFFF; // White
@@ -1449,7 +1454,10 @@ void render_frame(const char *html_cstr, uint32_t *buffer, int width,
   int y = 0;
   layout_node(global_root, width, 0, x, y, scale_factor);
 
-  // Paint phase
+  // Store content height for scrollbar calculation
+  global_content_height = y;
+
+  // Paint phase with scroll offset applied
   LayoutState state;
   state.x = 0;
   state.y = 0;
@@ -1457,7 +1465,10 @@ void render_frame(const char *html_cstr, uint32_t *buffer, int width,
   state.height = height;
   state.buffer = buffer;
   state.scale_factor = scale_factor;
+  state.scroll_offset = scroll_offset;
 
   paint_node(global_root, state, 0xFFFFFFFF); // Start with white background
 }
+
+int get_content_height() { return global_content_height; }
 }
