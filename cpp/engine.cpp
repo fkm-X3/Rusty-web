@@ -535,8 +535,14 @@ static ImageCacheEntry load_image(const std::string &src) {
   if (image_cache.count(src))
     return image_cache[src];
 
+  std::string path = src;
+  // Replace backslashes with forward slashes for stb_image
+  for (char &c : path) {
+    if (c == '\\') c = '/';
+  }
+
   int w, h, channels;
-  unsigned char *data = stbi_load(src.c_str(), &w, &h, &channels, 4);
+  unsigned char *data = stbi_load(path.c_str(), &w, &h, &channels, 4);
   if (!data) {
     return {0, 0, nullptr};
   }
@@ -1135,10 +1141,10 @@ void layout_node(std::shared_ptr<Node> node, int container_w, int line_start_x,
         // Determine display size. If CSS width/height are set, use them.
         // Otherwise use intrinsic size scaled by scale_factor.
         int w = (node->computed_style.width != -1)
-                    ? node->computed_style.width
+                    ? (int)(node->computed_style.width * scale_factor)
                     : (int)(entry.w * scale_factor);
         int h = (node->computed_style.height != -1)
-                    ? node->computed_style.height
+                    ? (int)(node->computed_style.height * scale_factor)
                     : (int)(entry.h * scale_factor);
 
         // Inline wrap logic for images
@@ -1157,6 +1163,11 @@ void layout_node(std::shared_ptr<Node> node, int container_w, int line_start_x,
             node->margin_box;
 
         x += w;
+        // If image is taller than line height, advance y to prevent overlap
+        double line_h = scale_factor * current_style.font_size * node->computed_style.line_height;
+        if (h > line_h) {
+          y += (int)(h - line_h);
+        }
         // Images don't have children in this simple engine, so we're done with
         // this node.
         return;
@@ -1306,7 +1317,7 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
             uint32_t pixel = (*node->img_data)[sy * src_w + sx];
             uint8_t a = (pixel >> 24) & 0xFF;
 
-            // Simple alpha blending with white background
+            // Simple alpha blending with current background
             if (a == 255) {
               draw_pixel(state.buffer, state.width, state.height,
                          node->margin_box.x + dx,
@@ -1316,10 +1327,14 @@ void paint_node(std::shared_ptr<Node> node, const LayoutState &state,
               uint8_t g = (pixel >> 8) & 0xFF;
               uint8_t b = pixel & 0xFF;
 
-              // Blend with white background
-              r = (r * a + 255 * (255 - a)) / 255;
-              g = (g * a + 255 * (255 - a)) / 255;
-              b = (b * a + 255 * (255 - a)) / 255;
+              uint8_t bg_r = (current_bg_color >> 16) & 0xFF;
+              uint8_t bg_g = (current_bg_color >> 8) & 0xFF;
+              uint8_t bg_b = current_bg_color & 0xFF;
+
+              // Blend with current background
+              r = (r * a + bg_r * (255 - a)) / 255;
+              g = (g * a + bg_g * (255 - a)) / 255;
+              b = (b * a + bg_b * (255 - a)) / 255;
 
               uint32_t blended = 0xFF000000 | (r << 16) | (g << 8) | b;
               draw_pixel(state.buffer, state.width, state.height,
