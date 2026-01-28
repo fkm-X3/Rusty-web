@@ -1,0 +1,13 @@
+[package]
+name = "Rusty-web"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "Rusty-web"
+path = "src/main.rs"
+
+[dependencies]
+rusty_web_core = { path = "rusty_web_core" }
+winit = "0.30"
+wry = "0.54"

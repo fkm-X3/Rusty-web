@@ -1,0 +1,91 @@
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab1 PageLoad
+0:00:00 Tab1 StartNav2 #link
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav3 #auto_toplevel
+0:00:00 Tab1 FinishNav2
+0:00:00 Tab1 PageLoad
+0:00:00 Tab2 FinishNav3
+0:00:00 Tab2 PageLoad
+0:00:00 Tab2 StartNav4 #google #typed
+0:00:02 Tab2 FinishNav4
+0:00:04 Tab2 StartNav5 #google #renderer-script #link
+0:00:04 Tab2 FinishNav5
+0:00:04 Tab2 PageLoad #google
+0:00:09 Widget Closed: TooltipAura
+0:00:09 Tab2 StartNav6 #renderer-user #auto_subframe
+0:00:10 Tab2 FinishNav6
+0:00:11 Tab2 PageLoad
+0:00:50 Tab2 StartNav7 #typed
+0:00:53 Tab2 FinishNav7 ERR_ABORTED
+0:00:53 Tab2 StartNav8 #typed
+0:00:54 Tab2 FinishNav8 ERR_ABORTED
+0:00:54 Tab2 StartNav9 #typed
+0:00:54 Tab2 FinishNav9 ERR_ABORTED
+0:00:54 Tab2 StartNav10 #typed
+0:00:55 Tab2 FinishNav10 ERR_NAME_NOT_RESOLVED
+0:00:55 Tab2 PageLoad
+0:00:56 Tab2 StartNav11 #typed
+0:01:01 Tab2 FinishNav11 ERR_ABORTED
+0:01:01 Tab2 StartNav12 #google #typed
+0:01:02 Tab2 FinishNav12
+0:01:02 Tab2 StartNav13 #google #renderer-script #link
+0:01:02 Tab2 FinishNav13
+0:01:02 Tab2 PageLoad #google
+0:01:09 Widget Closed: TooltipAura
+0:01:11 Tab2 StartNav14 #google #renderer-user #form_submit
+0:01:11 Tab2 FinishNav14
+0:01:11 Tab2 StartNav15 #renderer-script #auto_subframe
+0:01:11 Tab2 FinishNav15
+0:01:11 Tab2 PageLoad
+0:01:11 Tab2 PageLoad #google
+0:01:11 Tab2 StartNav16 #google #renderer-script #link
+0:01:11 Tab2 FinishNav16
+0:01:11 Tab2 StartNav17 #google #renderer-script #link
+0:01:11 Tab2 FinishNav17
+0:01:12 Tab2 StartNav18 #google #renderer-script #link
+0:01:12 Tab2 FinishNav18
+0:01:13 Tab2 PageLoad #google
+0:01:13 Tab2 StartNav19 #renderer-script #auto_subframe
+0:01:13 Tab2 FinishNav19
+0:01:13 Tab2 PageLoad
+0:01:13 Tab2 StartNav20 #renderer-script #auto_subframe
+0:01:14 Tab2 FinishNav20
+0:01:15 Tab2 StartNav21 #renderer-script #auto_subframe
+0:01:15 Tab2 FinishNav21
+0:01:15 Tab2 PageLoad
+0:01:15 Tab2 PageLoad
+0:01:42 Tab2 StartNav22 #typed
+0:01:43 Tab2 FinishNav22
+0:01:44 Tab2 StartNav23 #renderer-script #auto_subframe
+0:01:44 Tab2 FinishNav23
+0:01:44 Tab2 PageLoad
+0:01:44 Tab2 PageLoad
+0:01:51 Tab2 StartNav24 #renderer-user #auto_subframe
+0:01:51 Tab2 FinishNav24 ERR_ABORTED
+0:01:51 Tab2 StartNav25 #renderer-user #auto_subframe
+0:01:52 Tab2 FinishNav25
+0:01:52 Tab2 PageLoad
+0:01:59 Widget Closed: JavaScriptTabModalDialogViewViews
+0:02:01 Tab2 StartNav26 #renderer-user #link
+0:02:01 Tab2 FinishNav26
+0:02:01 Tab2 PageLoad
+0:02:03 Tab2 StartNav27 #renderer-user #auto_subframe
+0:02:03 Tab2 FinishNav27
+0:02:03 Tab2 PageLoad
+0:02:25 Tab2 StartNav28 #renderer-user #auto_subframe
+0:02:25 Tab2 FinishNav28
+0:02:25 Tab2 PageLoad
+0:02:26 Tab2 StartNav29 #renderer-user #auto_subframe
+0:02:26 Tab2 FinishNav29
+0:02:26 Tab2 PageLoad
+0:03:46 Tab2 StartNav30 #renderer-user #auto_subframe

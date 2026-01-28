@@ -1,0 +1,16 @@
+[package]
+name = "rusty_web_core"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "rusty_web_core"
+path = "src/lib.rs"
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+winit = "0.30"
+wry = "0.54"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
