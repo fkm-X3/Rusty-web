@@ -160,6 +160,10 @@ impl ApplicationHandler<BrowserEvent> for App {
             }
             BrowserEvent::Settings => {
                 println!("Settings requested!");
+                if let Some(webview) = &self.content_webview {
+                    let html = include_str!("settings.html");
+                    let _ = webview.load_html(html);
+                }
             }
         }
     }
