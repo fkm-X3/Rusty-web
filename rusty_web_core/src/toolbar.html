@@ -186,8 +186,25 @@
         const addTabBtn = document.getElementById('add-tab');
         const urlInput = document.getElementById('url-input');
         
-        let tabs = [{ id: 1, title: 'New Tab', url: '' }];
+        let tabs = [{ id: 1, title: 'New Tab', url: 'https://www.google.com' }];
         let activeTabId = 1;
+
+        // Function to receive URL updates from Rust
+        window.updateUrlFromBrowser = function(url) {
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab) {
+                currentTab.url = url;
+                // Update the title based on URL
+                if (url.startsWith('about:')) {
+                    currentTab.title = url.replace('about:', '').charAt(0).toUpperCase() + 
+                                      url.replace('about:', '').slice(1);
+                } else {
+                    currentTab.title = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+                }
+                urlInput.value = url;
+                renderTabs();
+            }
+        };
 
         function renderTabs() {
             // Remove existing tabs (but keep the add button)

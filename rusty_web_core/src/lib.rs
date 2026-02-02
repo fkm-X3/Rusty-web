@@ -26,6 +26,7 @@ struct App {
     toolbar_webview: Option<WebView>,
     content_webview: Option<WebView>,
     proxy: EventLoopProxy<BrowserEvent>,
+    current_url: String,
 }
 
 impl App {
@@ -35,6 +36,7 @@ impl App {
             toolbar_webview: None,
             content_webview: None,
             proxy,
+            current_url: "https://www.google.com".to_string(),
         }
     }
 
@@ -50,6 +52,16 @@ impl App {
                 position: Position::Logical(LogicalPosition::new(0.0, TOOLBAR_HEIGHT)),
                 size: Size::Logical(LogicalSize::new(width, (height - TOOLBAR_HEIGHT).max(1.0))),
             });
+        }
+    }
+
+    fn update_toolbar_url(&self, url: &str) {
+        if let Some(toolbar) = &self.toolbar_webview {
+            let script = format!(
+                "if (typeof updateUrlFromBrowser === 'function') {{ updateUrlFromBrowser('{}'); }}",
+                url.replace('\'', "\\'").replace('\\', "\\\\")
+            );
+            let _ = toolbar.evaluate_script(&script);
         }
     }
 }
@@ -72,9 +84,6 @@ impl ApplicationHandler<BrowserEvent> for App {
         let proxy = self.proxy.clone();
         let toolbar_html = include_str!("toolbar.html");
         
-        // Note: Wry's IPC signature might vary. Assuming |request| or |window, request|
-        // Based on recent Wry, likely: move |msg| or move |window, msg|
-        // If compilation fails on callback, we will check signature.
         let toolbar_webview = WebViewBuilder::new()
             .with_html(toolbar_html)
             .with_bounds(Rect {
@@ -82,12 +91,6 @@ impl ApplicationHandler<BrowserEvent> for App {
                 size: Size::Logical(LogicalSize::new(width, TOOLBAR_HEIGHT)),
             })
             .with_ipc_handler(move |msg| {
-                // Check if msg is String (older wry) or Request (newer)
-                // Wry 0.50+ usually passes the string message directly as `String` or `Request`.
-                // Let's assume `String` or try to parse `msg.body()` if it is a Request.
-                // Wait, `with_ipc_handler` in recent versions: `F: Fn(&Window, String) + 'static` ?
-                // Error log didn't specify E0593 details, but let's try strict signature.
-                // Actually, let's treat `msg` as the string.
                 if let Ok(message) = serde_json::from_str::<IpcMessage>(&msg.body()) {
                      match message {
                         IpcMessage::Navigate { url } => {
@@ -109,12 +112,19 @@ impl ApplicationHandler<BrowserEvent> for App {
                 position: Position::Logical(LogicalPosition::new(0.0, TOOLBAR_HEIGHT)),
                 size: Size::Logical(LogicalSize::new(width, (height - TOOLBAR_HEIGHT).max(1.0))),
             })
+            .with_navigation_handler(|url| {
+                println!("Navigation to: {}", url);
+                true
+            })
             .build(&window)
             .expect("Failed to create content webview");
 
         self.window = Some(window);
         self.toolbar_webview = Some(toolbar_webview);
         self.content_webview = Some(content_webview);
+        
+        // Initialize toolbar with current URL
+        self.update_toolbar_url(&self.current_url);
     }
 
     fn window_event(
@@ -126,15 +136,6 @@ impl ApplicationHandler<BrowserEvent> for App {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => {
-                // size is PhysicalSize
-                // We need to convert or just use Physical for bounds to be accurate
-                // But App::resize_webviews uses Logical currently (implied by previous code).
-                // Let's convert to Logical using scale factor if possible, or just use Physical in resize_webviews?
-                // The easiest is to use Physical for everything if possible to avoid rounding errors.
-                // But `set_bounds` takes `Rect` which we used Logical.
-                
-                // Let's just blindly assume 1.0 scale or try to get scale factor.
-                // `self.window` has it.
                 if let Some(window) = &self.window {
                     let scale_factor = window.scale_factor();
                     let logical_size = size.to_logical::<f64>(scale_factor);
@@ -155,6 +156,11 @@ impl ApplicationHandler<BrowserEvent> for App {
                     } else {
                         url
                     };
+                    
+                    // Update current URL and toolbar
+                    self.current_url = url.clone();
+                    self.update_toolbar_url(&url);
+                    
                     let _ = webview.load_url(url.as_str());
                 }
             }
@@ -163,6 +169,10 @@ impl ApplicationHandler<BrowserEvent> for App {
                 if let Some(webview) = &self.content_webview {
                     let html = include_str!("settings.html");
                     let _ = webview.load_html(html);
+                    
+                    // Update toolbar to show settings page
+                    self.current_url = "about:settings".to_string();
+                    self.update_toolbar_url(&self.current_url);
                 }
             }
         }
