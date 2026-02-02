@@ -6,7 +6,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 use wry::{Rect, WebView, WebViewBuilder};
 
-const TOOLBAR_HEIGHT: f64 = 60.0;
+const TOOLBAR_HEIGHT: f64 = 90.0;
 
 #[derive(Debug)]
 enum BrowserEvent {
