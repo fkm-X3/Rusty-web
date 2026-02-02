@@ -10,7 +10,8 @@
             --input-bg: #3c3f41;
             --text-color: #ffffff;
             --accent-color: #4a90e2;
-            --hover-color: #357abd;
+            --tab-bg: #1e1e1e;
+            --tab-active-bg: #2b2b2b;
         }
 
         body {
@@ -18,20 +19,86 @@
             padding: 0;
             background-color: var(--bg-color);
             display: flex;
-            align-items: center;
-            height: 100vh; /* Full height of the webview */
+            flex-direction: column; /* Stack tabs and toolbar */
+            height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             box-sizing: border-box;
-            padding: 0 10px;
             overflow: hidden;
             user-select: none;
         }
 
+        /* Tab Bar Styles */
+        .tab-bar {
+            display: flex;
+            background-color: var(--tab-bg);
+            padding: 5px 10px 0 10px;
+            gap: 4px;
+            align-items: flex-end;
+            height: 40px;
+        }
+
+        .tab {
+            background-color: #333;
+            color: #aaa;
+            padding: 6px 12px;
+            border-radius: 8px 8px 0 0;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            max-width: 200px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .tab.active {
+            background-color: var(--tab-active-bg);
+            color: white;
+            border: 1px solid #444;
+            border-bottom: none;
+        }
+
+        .tab-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .close-tab {
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .close-tab:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .add-tab-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px 5px 10px;
+        }
+
+        /* Toolbar Styles */
         .toolbar-container {
             display: flex;
             width: 100%;
             gap: 10px;
             align-items: center;
+            padding: 8px 10px;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid #444;
         }
 
         #url-input {
@@ -39,15 +106,10 @@
             background-color: var(--input-bg);
             border: 1px solid #555;
             border-radius: 20px;
-            padding: 8px 15px;
+            padding: 6px 15px;
             color: var(--text-color);
-            font-size: 14px;
+            font-size: 13px;
             outline: none;
-            transition: border-color 0.2s;
-        }
-
-        #url-input:focus {
-            border-color: var(--accent-color);
         }
 
         button {
@@ -55,78 +117,116 @@
             border: none;
             color: var(--text-color);
             cursor: pointer;
-            padding: 8px;
+            padding: 6px;
             border-radius: 50%;
-            transition: background-color 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
         }
 
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        button svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        /* Settings Dropdown (Visual Only for now) */
-        .settings-btn {
-            margin-left: auto;
-        }
-
+        button:hover { background-color: rgba(255, 255, 255, 0.1); }
+        button svg { width: 18px; height: 18px; fill: currentColor; }
     </style>
 </head>
 <body>
+
+    <div class="tab-bar" id="tab-bar">
+        <button class="add-tab-btn" id="add-tab" title="New Tab">+</button>
+    </div>
+
     <div class="toolbar-container">
-        <!-- Back/Forward could go here -->
-        
         <input type="text" id="url-input" placeholder="Search or type a URL" />
         
         <button id="go-btn" title="Go">
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
 
-        <button id="settings-btn" class="settings-btn" title="Settings">
+        <button id="settings-btn" title="Settings">
             <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.49l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
         </button>
     </div>
 
     <script>
+        const tabBar = document.getElementById('tab-bar');
+        const addTabBtn = document.getElementById('add-tab');
         const urlInput = document.getElementById('url-input');
-        const goBtn = document.getElementById('go-btn');
-        const settingsBtn = document.getElementById('settings-btn');
+        
+        let tabs = [{ id: 1, title: 'New Tab', url: '' }];
+        let activeTabId = 1;
+
+        function renderTabs() {
+            // Remove existing tabs (but keep the add button)
+            document.querySelectorAll('.tab').forEach(t => t.remove());
+
+            tabs.forEach(tab => {
+                const tabEl = document.createElement('div');
+                tabEl.className = `tab ${tab.id === activeTabId ? 'active' : ''}`;
+                tabEl.innerHTML = `
+                    <span class="tab-title">${tab.title}</span>
+                    <span class="close-tab" data-id="${tab.id}">×</span>
+                `;
+                
+                tabEl.onclick = () => switchTab(tab.id);
+                tabEl.querySelector('.close-tab').onclick = (e) => {
+                    e.stopPropagation();
+                    closeTab(tab.id);
+                };
+
+                tabBar.insertBefore(tabEl, addTabBtn);
+            });
+        }
+
+        function switchTab(id) {
+            activeTabId = id;
+            const currentTab = tabs.find(t => t.id === id);
+            urlInput.value = currentTab.url || '';
+            renderTabs();
+            sendIpc({ type: 'switch_tab', id: id });
+        }
+
+        function closeTab(id) {
+            if (tabs.length === 1) return; // Don't close the last tab
+            const index = tabs.findIndex(t => t.id === id);
+            tabs = tabs.filter(t => t.id !== id);
+            
+            if (activeTabId === id) {
+                activeTabId = tabs[Math.max(0, index - 1)].id;
+            }
+            renderTabs();
+            sendIpc({ type: 'close_tab', id: id });
+        }
+
+        addTabBtn.onclick = () => {
+            const newId = Date.now();
+            tabs.push({ id: newId, title: 'New Tab', url: '' });
+            switchTab(newId);
+            sendIpc({ type: 'new_tab', id: newId });
+        };
 
         function navigate() {
             const url = urlInput.value;
             if (url) {
-                // Send IPC message to Rust
-                if (window.ipc) {
-                    window.ipc.postMessage(JSON.stringify({ type: 'navigate', url: url }));
-                } else {
-                    console.log("IPC not available. URL:", url);
-                }
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                currentTab.url = url;
+                currentTab.title = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+                renderTabs();
+                sendIpc({ type: 'navigate', url: url, tabId: activeTabId });
             }
         }
 
-        goBtn.addEventListener('click', navigate);
-
-        urlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                navigate();
+        function sendIpc(payload) {
+            if (window.ipc) {
+                window.ipc.postMessage(JSON.stringify(payload));
+            } else {
+                console.log("IPC Message:", payload);
             }
-        });
+        }
 
-        settingsBtn.addEventListener('click', () => {
-             if (window.ipc) {
-                    window.ipc.postMessage(JSON.stringify({ type: 'settings' }));
-                } else {
-                    console.log("Settings clicked");
-                }
-        });
+        document.getElementById('go-btn').onclick = navigate;
+        urlInput.onkeydown = (e) => { if (e.key === 'Enter') navigate(); };
+        document.getElementById('settings-btn').onclick = () => sendIpc({ type: 'settings' });
+
+        // Initial render
+        renderTabs();
     </script>
 </body>
 </html>
