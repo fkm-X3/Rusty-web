@@ -2,7 +2,3 @@ target/
 bin/
 .vscode/
 AGENTS.md
-Browser.exe
-bundle.exe
-debug_link.bat
-reproduce.bat
