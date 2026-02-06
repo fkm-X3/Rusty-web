@@ -1,6 +1,5 @@
 target/
 bin/
 .vscode/
-AGENTS.md
 Installer-script.iss
 output/
